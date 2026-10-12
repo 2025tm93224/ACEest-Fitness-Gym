@@ -1,0 +1,15 @@
+services:
+  web:
+    build: .
+    image: aceest-fitness:local
+    ports:
+      - "8000:8000"
+    environment:
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in your environment before starting}
+      DATABASE_URL: sqlite:////data/aceest_fitness.db
+    volumes:
+      - aceest_data:/data
+    restart: unless-stopped
+
+volumes:
+  aceest_data:

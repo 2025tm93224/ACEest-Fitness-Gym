@@ -74,3 +74,30 @@ python -m pytest -v
 ```
 
 The tests use an isolated in-memory SQLite database and Flask's test client, so they do not use or overwrite the local development database. Coverage includes program configuration and calorie-factor calculations, dashboard and client pages, client create/edit validation and persistence, duplicate-name handling, weekly adherence, workout logging, body metrics, and cascading record deletion. Add tests for every new feature or bug fix before merging its branch into `main`.
+
+## Docker containerization
+
+The image uses Python 3.12, installs runtime dependencies, runs Gunicorn as a non-root user, and stores the SQLite database in `/data`. The named Docker volume keeps the database when the container is recreated. Pytest and other development files are excluded from the image build context where appropriate.
+
+Install Docker Engine or a compatible Docker CLI/Compose setup on the host, then from the project root:
+
+```bash
+# Set a strong secret for this shell session; do not commit it to Git.
+export SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
+docker compose up --build -d
+docker compose ps
+docker compose logs -f web
+```
+
+Open <http://localhost:8000>. Stop the service with `docker compose down`. The named `aceest_data` volume is retained by default; `docker compose down -v` deletes that volume and its database, so use it only when you intentionally want to remove the data.
+
+To run the Pytest suite inside a dedicated test image (separate from the production runtime image):
+
+```bash
+docker build --target test -t aceest-fitness:test .
+docker run --rm aceest-fitness:test
+```
+
+The runtime image excludes Pytest and other development dependencies. You can also run tests on the Rocky Linux host using `pip install -r requirements-dev.txt && python -m pytest -v` inside your virtual environment.
+
+For Rocky Linux, confirm the Docker Engine and Compose plugin are installed and the Docker service is running before using `docker compose`. If your lab uses Podman, these files may work with compatible Compose tooling, but command availability depends on the lab setup. The application is a learning/demo project; production deployment still requires authentication/authorization, CSRF protection, migrations, backups, and secure secret management.
