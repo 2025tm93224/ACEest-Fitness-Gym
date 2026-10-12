@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% block title %}{{ 'Edit' if client else 'Add' }} client · ACEest{% endblock %}{% block content %}
+<div class="heading"><div><p class="eyebrow">CLIENT PROFILE</p><h1>{{ 'Edit client' if client else 'Add client' }}</h1></div></div>
+<form class="panel form" method="post">
+<label>Full name<input name="name" required maxlength="120" value="{{ request.form.get('name', client.name if client else '') }}"></label>
+<div class="two"><label>Age<input type="number" min="1" max="110" name="age" required value="{{ request.form.get('age', client.age if client else '') }}"></label><label>Height (cm)<input type="number" min="1" step="0.1" name="height" required value="{{ request.form.get('height', client.height if client else '') }}"></label></div>
+<label>Weight (kg)<input type="number" min="1" step="0.1" name="weight" required value="{{ request.form.get('weight', client.weight if client else '') }}"></label>
+<label>Fitness program<select name="program" required>{% for name, info in programs.items() %}<option value="{{ name }}" {% if request.form.get('program', client.program if client else '') == name %}selected{% endif %}>{{ name }} — {{ info.desc }}</option>{% endfor %}</select></label>
+<div class="two"><label>Target weight (kg)<input type="number" min="1" step="0.1" name="target_weight" value="{{ request.form.get('target_weight', client.target_weight if client and client.target_weight else '') }}"></label><label>Target adherence (%)<input type="number" min="0" max="100" name="target_adherence" value="{{ request.form.get('target_adherence', client.target_adherence if client else 80) }}"></label></div>
+<div class="actions"><a class="btn secondary" href="{{ url_for('clients.index') }}">Cancel</a><button class="btn" type="submit">Save profile</button></div></form>{% endblock %}
