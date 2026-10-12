@@ -100,4 +100,23 @@ docker run --rm aceest-fitness:test
 
 The runtime image excludes Pytest and other development dependencies. You can also run tests on the Rocky Linux host using `pip install -r requirements-dev.txt && python -m pytest -v` inside your virtual environment.
 
-For Rocky Linux, confirm the Docker Engine and Compose plugin are installed and the Docker service is running before using `docker compose`. If your lab uses Podman, these files may work with compatible Compose tooling, but command availability depends on the lab setup. The application is a learning/demo project; production deployment still requires authentication/authorization, CSRF protection, migrations, backups, and secure secret management.
+## Jenkins BUILD pipeline
+
+The root `Jenkinsfile` defines a declarative Jenkins pipeline that checks out the GitHub revision, creates a fresh Python virtual environment, installs `requirements-dev.txt`, compiles the Python modules, checks dependency consistency, runs Pytest as a quality gate, publishes JUnit results, and builds the Docker runtime image.
+
+### Jenkins agent prerequisites
+
+The Jenkins build agent must have Git, Python 3 with `venv`, pip, Docker CLI/Engine, and permission to access the Docker daemon. The Jenkins user should have Docker access through your lab's approved administration process; avoid making the Docker socket accessible to untrusted users because Docker access is effectively privileged. If Docker is not available on the agent, remove/disable the `Build Docker Image` stage or use a dedicated Docker-capable agent.
+
+### Configure a Jenkins job
+
+1. Push this project, including `Jenkinsfile`, to GitHub.
+2. In Jenkins, install/enable **Pipeline**, **Git**, and **JUnit** support (the JUnit plugin is commonly installed by default).
+3. Select **New Item → Pipeline**. Give it a name such as `aceest-fitness-build`.
+4. Under **Pipeline**, choose **Pipeline script from SCM**; select **Git**, enter the GitHub repository URL, configure credentials if it is private, set the branch (for example `*/main`), and set **Script Path** to `Jenkinsfile`.
+5. Save and click **Build Now**. Review the stage view and the **Test Result** report. A failing test or Docker build marks the pipeline as failed.
+6. For automatic builds, configure a GitHub webhook to the Jenkins endpoint `/github-webhook/` and enable the GitHub hook trigger in the job, or configure a Multibranch Pipeline / SCM polling according to your lab's network setup. A webhook requires GitHub to be able to reach the Jenkins server.
+
+### Quality gate behavior
+
+The pipeline only reports success when dependency installation, Python compile checks, `pip check`, all Pytest tests, and the Docker runtime image build succeed. It does not push an image to a registry or deploy the app; those should be separate controlled pipeline stages with credentials managed in Jenkins, not hard-coded in the repository.
