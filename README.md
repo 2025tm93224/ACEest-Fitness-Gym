@@ -100,6 +100,8 @@ docker run --rm aceest-fitness:test
 
 The runtime image excludes Pytest and other development dependencies. You can also run tests on the Rocky Linux host using `pip install -r requirements-dev.txt && python -m pytest -v` inside your virtual environment.
 
+For Rocky Linux, confirm the Docker Engine and Compose plugin are installed and the Docker service is running before using `docker compose`. If your lab uses Podman, these files may work with compatible Compose tooling, but command availability depends on the lab setup. The application is a learning/demo project; production deployment still requires authentication/authorization, CSRF protection, migrations, backups, and secure secret management.
+
 ## Jenkins BUILD pipeline
 
 The root `Jenkinsfile` defines a declarative Jenkins pipeline that checks out the GitHub revision, creates a fresh Python virtual environment, installs `requirements-dev.txt`, compiles the Python modules, checks dependency consistency, runs Pytest as a quality gate, publishes JUnit results, and builds the Docker runtime image.
@@ -120,3 +122,14 @@ The Jenkins build agent must have Git, Python 3 with `venv`, pip, Docker CLI/Eng
 ### Quality gate behavior
 
 The pipeline only reports success when dependency installation, Python compile checks, `pip check`, all Pytest tests, and the Docker runtime image build succeed. It does not push an image to a registry or deploy the app; those should be separate controlled pipeline stages with credentials managed in Jenkins, not hard-coded in the repository.
+
+## GitHub Actions CI pipeline
+
+The workflow at `.github/workflows/main.yml` runs on every push and pull request. It:
+
+1. Installs the development dependencies and compiles the Python source.
+2. Runs Flake8 lint checks.
+3. Builds both the production `runtime` Docker image and the `test` image.
+4. Runs the Pytest suite inside the test container.
+
+A failed lint, image build, or test step fails the workflow. The workflow builds images for validation only; it does not publish them to a registry or deploy the application.
