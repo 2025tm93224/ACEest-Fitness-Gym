@@ -1,4 +1,4 @@
-```dockerfile
+dockerfile
 # Separate test target keeps development dependencies out of the runtime image.
 FROM python:3.12-slim AS test
 
