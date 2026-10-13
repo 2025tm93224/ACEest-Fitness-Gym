@@ -1,135 +1,249 @@
-# ACEest Fitness & Performance — Flask Edition
+# ACEest Fitness & Performance
 
-This modular web application adapts the supplied Tkinter/SQLite baseline into a browser-based Flask app.
+A modular Flask web application for managing gym clients and recording fitness progress. This project adapts the supplied Tkinter/SQLite baseline into a browser-based application and demonstrates a development workflow using Git, Pytest, Docker, Jenkins, and GitHub Actions.
 
-## Included
-- Dashboard and client directory
-- Create, edit, view, and delete client profiles
-- Baseline fitness programs and estimated calories (`weight × program factor`)
-- Weekly adherence logging
-- Workout logging and history
-- Body metric logging (weight, waist, body-fat percentage)
-- SQLite persistence using Flask-SQLAlchemy
-- Flask application factory and Blueprints
+## Contents
 
-## Run
-Requires Python 3.10+.
+- [Features](#features)
+- [Technology stack](#technology-stack)
+- [Project layout](#project-layout)
+- [Local setup and execution](#local-setup-and-execution)
+- [Manual testing](#manual-testing)
+- [Docker usage](#docker-usage)
+- [CI integration](#ci-integration)
+  - [GitHub Actions](#github-actions)
+  - [Jenkins](#jenkins)
+- [Git workflow](#git-workflow)
+- [Limitations and production considerations](#limitations-and-production-considerations)
 
-```bash
-python -m venv .venv
+## Features
+
+- Dashboard showing client and activity summaries.
+- Create, view, edit, and delete client profiles.
+- Fitness program information and a rough program-specific calorie estimate (`weight × program factor`).
+- Weekly adherence tracking.
+- Workout logging and history.
+- Body metric records, including weight, waist, and body-fat percentage.
+- SQLite persistence through Flask-SQLAlchemy.
+- Flask application factory and Blueprints for modular routes.
+
+## Technology stack
+
+- Python 3.10+ for local development; the Docker image uses Python 3.12.
+- Flask and Flask-SQLAlchemy.
+- SQLite for the local database.
+- Pytest for automated tests and Flake8 for linting.
+- Docker / Docker Compose for containerized execution.
+- Jenkins and GitHub Actions for CI validation.
+
+## Project layout
+
+```text
+aceest_flask_app/
+├── app/
+│   ├── clients/              # Client profile routes
+│   ├── dashboard/           # Dashboard route
+│   ├── progress/             # Adherence, workout, and body metric routes
+│   ├── templates/            # Jinja templates
+│   ├── static/               # CSS assets
+│   ├── models.py             # SQLAlchemy models
+│   └── programs.py           # Fitness program definitions
+├── tests/                    # Pytest test suite
+├── .github/workflows/
+│   ├── main.yml              # Build, lint, Docker, and containerized tests
+│   └── tests.yml             # Additional test workflow
+├── Dockerfile                # Test and runtime image targets
+├── compose.yaml              # Local container configuration
+├── Jenkinsfile               # Jenkins declarative pipeline
+├── requirements.txt          # Runtime dependencies
+├── requirements-dev.txt      # Runtime plus test/lint dependencies
+├── config.py
+├── run.py
+└── README.md
 ```
 
-Windows PowerShell:
-```powershell
-.venv\Scripts\Activate.ps1
+## Local setup and execution
+
+### Rocky Linux
+
+Install Python, pip, and virtual-environment support:
+
+```bash
+sudo dnf install -y python3 python3-pip python3-devel
+python3 --version
 ```
 
-macOS/Linux:
+Extract the project ZIP, then change into the project directory. For example:
+
 ```bash
+unzip aceest_flask_app_github_actions.zip
+cd aceest_flask_app
+```
+
+Create and activate a virtual environment:
+
+```bash
+python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-Install and start:
+Install application dependencies:
+
 ```bash
-pip install -r requirements.txt
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+Start the development server:
+
+```bash
 python run.py
 ```
 
-Open http://127.0.0.1:5000.
+Open <http://127.0.0.1:5000> in a browser. Stop the server with `Ctrl+C`; leave the virtual environment with `deactivate`.
 
-## Structure
-- `app/__init__.py`: application factory, extension setup, blueprint registration
-- `app/models.py`: client, progress, workout, and body metric models
-- `app/programs.py`: baseline program data and calorie factors
-- `app/dashboard/`: dashboard routes
-- `app/clients/`: client CRUD and profile routes
-- `app/progress/`: adherence, workout, and body metric endpoints
-- `app/templates/`: Jinja templates
-- `app/static/style.css`: responsive dark/gold styling
+### Windows PowerShell
 
-## Important notes
-The calorie value deliberately preserves the baseline calculation; it is only a rough program-specific estimate and not individualized medical advice. Program descriptions and nutrition notes are general examples, not prescriptions.
-
-This is a starter/demo application. Before production, add authentication and authorization, CSRF protection, migrations, automated tests, secure secret management, logging, backups, and a production WSGI server. Do not use Flask's debug server in production. The database schema is initialized with `create_all()`; this does not migrate an existing Tkinter database automatically.
-
-## Unit testing with Pytest
-
-Install the application and test dependencies in your virtual environment:
-
-```bash
-pip install -r requirements-dev.txt
+```powershell
+py -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python run.py
 ```
 
-Run the complete test suite from the project root:
+### macOS / Linux
 
 ```bash
-python -m pytest
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python run.py
 ```
 
-Run one test module or show each test result:
+## Manual testing
+
+Activate the project's virtual environment, then install development dependencies. This installs the runtime requirements along with Pytest and Flake8:
 
 ```bash
-python -m pytest tests/test_programs.py -v
+python -m pip install -r requirements-dev.txt
+```
+
+Run the complete test suite:
+
+```bash
 python -m pytest -v
 ```
 
-The tests use an isolated in-memory SQLite database and Flask's test client, so they do not use or overwrite the local development database. Coverage includes program configuration and calorie-factor calculations, dashboard and client pages, client create/edit validation and persistence, duplicate-name handling, weekly adherence, workout logging, body metrics, and cascading record deletion. Add tests for every new feature or bug fix before merging its branch into `main`.
-
-## Docker containerization
-
-The image uses Python 3.12, installs runtime dependencies, runs Gunicorn as a non-root user, and stores the SQLite database in `/data`. The named Docker volume keeps the database when the container is recreated. Pytest and other development files are excluded from the image build context where appropriate.
-
-Install Docker Engine or a compatible Docker CLI/Compose setup on the host, then from the project root:
+Run a specific test module:
 
 ```bash
-# Set a strong secret for this shell session; do not commit it to Git.
+python -m pytest tests/test_programs.py -v
+python -m pytest tests/test_app_routes.py -v
+```
+
+Run the syntax and lint checks used by CI:
+
+```bash
+python -m compileall -q app run.py config.py tests
+python -m flake8 app run.py config.py tests --count --show-source --statistics --max-line-length=100 --extend-ignore=E203,W503
+python -m pip check
+```
+
+The tests use an isolated in-memory SQLite database and Flask's test client; they are designed not to overwrite the local development database. The suite covers program configuration, routes, client validation and persistence, adherence, workout logging, body metrics, and related record deletion. Add or update tests when implementing a feature or fixing a bug.
+
+## Docker usage
+
+Install Docker Engine and the Docker Compose plugin, then confirm the Docker daemon is running. On Rocky Linux, use the installation method approved for your lab. Docker daemon access is privileged; do not make `/var/run/docker.sock` writable by every local user.
+
+From the project root, create a strong secret for the current shell session and start the service:
+
+```bash
 export SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
 docker compose up --build -d
 docker compose ps
 docker compose logs -f web
 ```
 
-Open <http://localhost:8000>. Stop the service with `docker compose down`. The named `aceest_data` volume is retained by default; `docker compose down -v` deletes that volume and its database, so use it only when you intentionally want to remove the data.
+Open <http://localhost:8000>. Stop the service with:
 
-To run the Pytest suite inside a dedicated test image (separate from the production runtime image):
+```bash
+docker compose down
+```
+
+The Compose configuration uses a named volume (`aceest_data`) to persist the SQLite database when the container is stopped or recreated. `docker compose down -v` removes the volume and its data; use it only when you intentionally want to delete the database.
+
+Build and run the test target to execute Pytest inside a container:
 
 ```bash
 docker build --target test -t aceest-fitness:test .
 docker run --rm aceest-fitness:test
 ```
 
-The runtime image excludes Pytest and other development dependencies. You can also run tests on the Rocky Linux host using `pip install -r requirements-dev.txt && python -m pytest -v` inside your virtual environment.
+Build the runtime image without starting it:
 
-For Rocky Linux, confirm the Docker Engine and Compose plugin are installed and the Docker service is running before using `docker compose`. If your lab uses Podman, these files may work with compatible Compose tooling, but command availability depends on the lab setup. The application is a learning/demo project; production deployment still requires authentication/authorization, CSRF protection, migrations, backups, and secure secret management.
+```bash
+docker build --target runtime -t aceest-fitness:local .
+```
 
-## Jenkins BUILD pipeline
+## CI integration
 
-The root `Jenkinsfile` defines a declarative Jenkins pipeline that checks out the GitHub revision, creates a fresh Python virtual environment, installs `requirements-dev.txt`, compiles the Python modules, checks dependency consistency, runs Pytest as a quality gate, publishes JUnit results, and builds the Docker runtime image.
+Both CI systems provide repeatable validation, but they are configured independently. Keep `main` as the stable branch and require checks to pass before merging changes.
 
-### Jenkins agent prerequisites
+### GitHub Actions
 
-The Jenkins build agent must have Git, Python 3 with `venv`, pip, Docker CLI/Engine, and permission to access the Docker daemon. The Jenkins user should have Docker access through your lab's approved administration process; avoid making the Docker socket accessible to untrusted users because Docker access is effectively privileged. If Docker is not available on the agent, remove/disable the `Build Docker Image` stage or use a dedicated Docker-capable agent.
+Workflow file: `.github/workflows/main.yml`
 
-### Configure a Jenkins job
+**Triggers:** every `push` and every `pull_request` event.
 
-1. Push this project, including `Jenkinsfile`, to GitHub.
-2. In Jenkins, install/enable **Pipeline**, **Git**, and **JUnit** support (the JUnit plugin is commonly installed by default).
-3. Select **New Item → Pipeline**. Give it a name such as `aceest-fitness-build`.
-4. Under **Pipeline**, choose **Pipeline script from SCM**; select **Git**, enter the GitHub repository URL, configure credentials if it is private, set the branch (for example `*/main`), and set **Script Path** to `Jenkinsfile`.
-5. Save and click **Build Now**. Review the stage view and the **Test Result** report. A failing test or Docker build marks the pipeline as failed.
-6. For automatic builds, configure a GitHub webhook to the Jenkins endpoint `/github-webhook/` and enable the GitHub hook trigger in the job, or configure a Multibranch Pipeline / SCM polling according to your lab's network setup. A webhook requires GitHub to be able to reach the Jenkins server.
+The workflow uses GitHub-hosted Ubuntu runners and Python 3.12. It has two dependent jobs:
 
-### Quality gate behavior
+1. **Build and lint** — checks out the code, installs `requirements-dev.txt`, compiles the Python source with `compileall`, and runs Flake8.
+2. **Assemble Docker images** — runs only if build/lint passes; builds the Docker `runtime` and `test` targets, then runs the Pytest suite inside the test container.
 
-The pipeline only reports success when dependency installation, Python compile checks, `pip check`, all Pytest tests, and the Docker runtime image build succeed. It does not push an image to a registry or deploy the app; those should be separate controlled pipeline stages with credentials managed in Jenkins, not hard-coded in the repository.
+A failed lint check, Docker build, or test command fails the workflow. Images are built for validation only: this workflow does not publish them to a registry or deploy the application.
 
-## GitHub Actions CI pipeline
+**To enable it:** commit `.github/workflows/main.yml` and the project files, push them to GitHub, and open the repository's **Actions** tab. GitHub Actions runs the workflow on subsequent pushes and pull requests. Review job logs and test output for failures.
 
-The workflow at `.github/workflows/main.yml` runs on every push and pull request. It:
+### Jenkins
 
-1. Installs the development dependencies and compiles the Python source.
-2. Runs Flake8 lint checks.
-3. Builds both the production `runtime` Docker image and the `test` image.
-4. Runs the Pytest suite inside the test container.
+Pipeline file: `Jenkinsfile`
 
-A failed lint, image build, or test step fails the workflow. The workflow builds images for validation only; it does not publish them to a registry or deploy the application.
+The Jenkins declarative pipeline checks out the revision configured in the Jenkins job, creates a fresh Python virtual environment, installs development dependencies, compiles the application, checks installed dependencies with `pip check`, runs Pytest, publishes a JUnit-format test report, and builds the Docker runtime image. A failed validation stage prevents the pipeline from completing successfully.
+
+**Jenkins agent prerequisites:** Git, Python 3 with `venv`, pip, Docker CLI/daemon access, and network access to install dependencies. Docker access should be granted only through the lab's approved administration process because membership in the `docker` group is effectively root-level access.
+
+**Configure a Jenkins Pipeline job:**
+
+1. Push the project, including `Jenkinsfile`, to GitHub.
+2. In Jenkins, choose **New Item**, enter a job name such as `aceest-fitness-build`, and select **Pipeline**.
+3. Under **Pipeline**, select **Pipeline script from SCM** and choose **Git**.
+4. Enter the GitHub repository URL, configure credentials if the repository is private, set the branch to the actual branch name (for example, `*/main`), and set **Script Path** to `Jenkinsfile`.
+5. Save and select **Build Now**. Review the stage view, console log, and test report.
+6. For automatic builds, configure a GitHub webhook and the appropriate GitHub hook trigger, or use SCM polling / a Multibranch Pipeline. A webhook requires GitHub to reach the Jenkins endpoint.
+
+The Jenkins pipeline validates the build; it does not publish a Docker image or deploy the application. Registry publishing and deployment should be separate, controlled stages with credentials stored in Jenkins credentials management.
+
+## Git workflow
+
+Use `main` for stable code and short-lived branches for changes:
+
+```bash
+git switch main
+git pull origin main
+git switch -c feature/short-description
+# Make changes and run tests
+git add .
+git commit -m "feat: describe the change"
+git push -u origin feature/short-description
+```
+
+Open a pull request into `main`, review the changes, and wait for required CI checks before merging. Use descriptive commit prefixes such as `feat:`, `fix:`, `test:`, `docs:`, `ci:`, and `chore:`.
+
+## Limitations and production considerations
+
+- The calorie estimate intentionally preserves the baseline formula (`weight × program factor`). It is a rough program-specific estimate, not individualized medical advice. Program and nutrition descriptions are examples, not prescriptions.
+- This project is a learning/demo application. Before production use, implement authentication and authorization, CSRF protection, database migrations, secure secret management, backups, monitoring, and an appropriate production deployment configuration.
+- The schema is initialized with `create_all()`; this does not automatically migrate an existing database from the original Tkinter application.
+- Do not commit secrets, local database files, or virtual environments. The Flask development server is for local development only; the Docker runtime uses Gunicorn.
